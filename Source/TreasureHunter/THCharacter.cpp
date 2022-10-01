@@ -11,7 +11,7 @@ ATHCharacter::ATHCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	Cast<UCharacterMovementComponent>(GetMovementComponent())->AirControl = 1;
-	Cast<UCharacterMovementComponent>(GetMovementComponent())->GravityScale = 1.2;
+	Cast<UCharacterMovementComponent>(GetMovementComponent())->GravityScale = 1.1;
 	Cast<UCharacterMovementComponent>(GetMovementComponent())->BrakingFrictionFactor = 1;
 	Cast<UCharacterMovementComponent>(GetMovementComponent())->bUseSeparateBrakingFriction = true;
 	Cast<UCharacterMovementComponent>(GetMovementComponent())->NavAgentProps.bCanCrouch = true;

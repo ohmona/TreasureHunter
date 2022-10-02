@@ -16,12 +16,22 @@ public:
 	ATHProp();
 
 	UPROPERTY(EditAnywhere)
+	bool bSpecial = false;
+
+	bool bGlowing = false;
+
+	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* StaticMeshComponent;
 
 	UPROPERTY(EditAnywhere)
 	bool bMoveable = true;
 
 	FTransform Preset;
+
+	TArray<UMaterialInterface*> DefaultMaterials;
+
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* GlowMaterial;
 
 protected:
 	// Called when the game starts or when spawned
@@ -38,4 +48,8 @@ public:
 	// Reset rotation of prop
 	UFUNCTION(BlueprintCallable)
 	void ResetRotation(bool b_only_wake_up);
+
+	// Change glowing state
+	UFUNCTION(BlueprintCallable)
+	void ChangeGlow();
 };

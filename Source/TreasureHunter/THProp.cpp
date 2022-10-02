@@ -14,14 +14,19 @@ ATHProp::ATHProp()
 	// Create and initialize Components
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Static Mesh Component"));
 	RootComponent = StaticMeshComponent;
-	
 }
 
 // Called when the game starts or when spawned
 void ATHProp::BeginPlay()
 {
 	Super::BeginPlay();
+
 	StaticMeshComponent->SetSimulatePhysics(bMoveable);
+
+	if (StaticMeshComponent->GetStaticMesh() != nullptr) {
+		DefaultMaterials.SetNum(StaticMeshComponent->GetMaterials().Num());
+		DefaultMaterials = StaticMeshComponent->GetMaterials();
+	}
 }
 
 // Called every frame
@@ -57,4 +62,23 @@ void ATHProp::ResetRotation(bool b_only_wake_up)
 
 	// unless destinating rotation is equal to current, apply the rotation
 	if(!ResetRotation.Equals(GetTransform().GetRotation())) SetActorRotation(ResetRotation);
+}
+
+// Change glowing states
+void ATHProp::ChangeGlow()
+{
+	if (GlowMaterial == nullptr) return;
+
+	if (!bGlowing) { // enable glow
+		bGlowing = true;
+		for (int32 i = 0; i < DefaultMaterials.Num(); i++) {
+			StaticMeshComponent->SetMaterial(i, GlowMaterial);
+		}
+	}
+	else if(bGlowing) { // disable glow
+		bGlowing = false;
+		for (int32 i = 0; i < DefaultMaterials.Num(); i++) {
+			StaticMeshComponent->SetMaterial(i, DefaultMaterials[i]);
+		}
+	}
 }

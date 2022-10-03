@@ -23,6 +23,8 @@ void ATHProp::BeginPlay()
 
 	StaticMeshComponent->SetSimulatePhysics(bMoveable);
 
+	SetMassScale(Mass);
+
 	if (StaticMeshComponent->GetStaticMesh() != nullptr) {
 		DefaultMaterials.SetNum(StaticMeshComponent->GetMaterials().Num());
 		DefaultMaterials = StaticMeshComponent->GetMaterials();
@@ -81,4 +83,30 @@ void ATHProp::ChangeGlow()
 			StaticMeshComponent->SetMaterial(i, DefaultMaterials[i]);
 		}
 	}
+}
+
+// Change Mass
+void ATHProp::SetMassScale(float NewMass)
+{
+	if (!StaticMeshComponent) return;
+
+	FBodyInstance* BodyInst = StaticMeshComponent->GetBodyInstance();
+
+	if (!BodyInst) return;
+
+	// New Scale
+	BodyInst->SetMassScale(NewMass * 5);
+
+	// Update
+	BodyInst->UpdateMassProperties();
+}
+
+// Add force to specific direction
+void ATHProp::AddCustomForce(FVector direction, int32 force)
+{
+	float MeshMass = StaticMeshComponent->GetMass();
+	int32 amplitude_multiplier = 500;
+
+	// Apply force
+	StaticMeshComponent->AddForce(direction * force * amplitude_multiplier * MeshMass);
 }

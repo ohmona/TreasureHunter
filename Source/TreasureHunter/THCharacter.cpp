@@ -22,7 +22,6 @@ ATHCharacter::ATHCharacter()
 void ATHCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame

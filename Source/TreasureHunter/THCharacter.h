@@ -40,5 +40,5 @@ public:
 
 public:
 	float walk_speed = 500;
-	float sprint_factor = 1.3;
+	float sprint_factor = 1.2;
 };

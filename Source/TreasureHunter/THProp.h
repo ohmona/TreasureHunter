@@ -15,22 +15,34 @@ public:
 	// Sets default values for this actor's properties
 	ATHProp();
 
+	/** Properties for level-design */
+
 	// Whether it's objective
 	UPROPERTY(EditAnywhere)
 	bool bSpecial = false;
-
-	bool bGlowing = false;
 
 	// Basically in kg
 	UPROPERTY(EditAnywhere)
 	float Mass = 1.0f;
 
-	UPROPERTY(EditAnywhere, Category="Component")
-	UStaticMeshComponent* StaticMeshComponent;
-
 	// Whether physics is applied
 	UPROPERTY(EditAnywhere)
 	bool bMoveable = true;
+
+	// Whether it can be selected by player
+	UPROPERTY(EditAnywhere)
+	bool bSelectable = true;
+
+	// Whether it can be held by player
+	UPROPERTY(EditAnywhere)
+	bool bHoldable = true;
+
+	/** unsorted Properties */
+
+	bool bGlowing = false;
+
+	UPROPERTY(EditAnywhere, Category="Component")
+	UStaticMeshComponent* StaticMeshComponent;
 
 	FTransform Preset;
 
@@ -38,6 +50,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Material")
 	UMaterialInterface* GlowMaterial;
+
+	// Whether it's selected by player
+	bool bHeld = false;
 
 protected:
 	// Called when the game starts or when spawned
@@ -55,10 +70,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ResetRotation(bool b_only_wake_up);
 
-	// Change glowing state
-	UFUNCTION(BlueprintCallable)
-	void ChangeGlow();
-
 	// Change Mass
 	UFUNCTION(BlueprintCallable)
 	void SetMassScale(float NewMass);
@@ -66,4 +77,8 @@ public:
 	// Add force to specific direction
 	UFUNCTION(BlueprintCallable)
 	void AddCustomForce(FVector direction, int32 force = 100);
+
+	// Change glowing state
+	UFUNCTION(BlueprintCallable)
+	void ChangeGlow();
 };

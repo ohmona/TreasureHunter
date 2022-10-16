@@ -29,6 +29,22 @@ void ATHCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	/** Check facing actor and if it's not selecting prop, reset */
+	if (IsSelecting()) {
+
+		// Get facing actor
+		AActor* facing = DoLinetrace().GetActor();
+
+		// Check facing actor isn't selecting actor
+		if (facing != Cast<AActor>(Prop)) {
+			// Disable glow of selecting prop
+			Prop->ChangeGlow();
+
+			// Clear selecting prop
+			ClearProp();
+			bSelecting = false;
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -46,6 +62,44 @@ void ATHCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	InputComponent->BindAction("Crouch", IE_Released, this, &ATHCharacter::CrouchRelease);
 	InputComponent->BindAction("Sprint", IE_Pressed, this, &ATHCharacter::SprintPress);
 	InputComponent->BindAction("Sprint", IE_Released, this, &ATHCharacter::SprintRelease);
+	InputComponent->BindAction("Select", IE_Pressed, this, &ATHCharacter::SelectPress);
+	InputComponent->BindAction("Select", IE_Released, this, &ATHCharacter::SelectRelease);
+	InputComponent->BindAction("Hold", IE_Pressed, this, &ATHCharacter::HoldPress);
+	InputComponent->BindAction("Hold", IE_Released, this, &ATHCharacter::HoldRelease);
+}
+
+// Get the actor front of the player
+FHitResult ATHCharacter::DoLinetrace()
+{
+	FVector rayLocation;
+	FRotator rayRotation;
+	FVector endTrace = FVector::ZeroVector;
+
+	APlayerController* const playerController = GetWorld()->GetFirstPlayerController();
+
+	if (playerController)
+	{
+		playerController->GetPlayerViewPoint(rayLocation, rayRotation);
+		endTrace = rayLocation + (rayRotation.Vector() * select_range);
+	}
+
+	FCollisionQueryParams traceParams(SCENE_QUERY_STAT(GetActorInAim), true, GetInstigator());
+	FHitResult hit(ForceInit);
+	GetWorld()->LineTraceSingleByChannel(hit, rayLocation, endTrace, ECC_Visibility, traceParams);
+
+	return hit;
+}
+
+// Check whether player is selecting something
+bool ATHCharacter::IsSelecting()
+{
+	return Prop != nullptr;
+}
+
+// Clear selecting prop
+void ATHCharacter::ClearProp()
+{
+	Prop = nullptr;
 }
 
 void ATHCharacter::MoveForward(float AxisValue){ AddMovementInput(GetActorForwardVector(), AxisValue); }
@@ -67,3 +121,38 @@ void ATHCharacter::CrouchRelease() { UnCrouch(true); }
 void ATHCharacter::SprintPress() { Cast<UCharacterMovementComponent>(GetMovementComponent())->MaxWalkSpeed = walk_speed * sprint_factor; }
 
 void ATHCharacter::SprintRelease() { Cast<UCharacterMovementComponent>(GetMovementComponent())->MaxWalkSpeed = walk_speed; }
+
+void ATHCharacter::SelectPress() 
+{
+	UE_LOG(LogTemp, Log, TEXT("Select press"))
+
+	// Initialy get the actor front of the player
+	FHitResult FrontActor = DoLinetrace();
+
+	// Cast front actor to prop object
+	ATHProp* prop_temp = Cast<ATHProp>(FrontActor.GetActor());
+	if (prop_temp != nullptr) {
+		// Run code only if the prop is selectable and isn't glowing
+		if (prop_temp->bSelectable && !prop_temp->bGlowing) {
+			Prop = prop_temp;
+			Prop->ChangeGlow();
+			bSelecting = true;
+		}
+	}
+}
+
+void ATHCharacter::SelectRelease() {
+
+	/** Finish Selecting */
+	if (IsSelecting()) {
+		// Disable glow of selecting prop
+		Prop->ChangeGlow();
+
+		ClearProp();
+		bSelecting = false;
+	}
+}
+
+void ATHCharacter::HoldPress() {}
+
+void ATHCharacter::HoldRelease() {}

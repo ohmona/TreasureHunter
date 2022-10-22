@@ -16,10 +16,14 @@ public:
 	// Sets default values for this character's properties
 	ATHCharacter();
 
+	FTransform current_transform;
+
+	int aa = 1;
+
 	// Values for control
-	float walk_speed = 500;
-	float sprint_factor = 1.2;
-	float select_range = 2500;
+	float walk_speed = 450;
+	float sprint_factor = 1.3;
+	float select_range = 350;
 
 	// Whether player is holding a prop
 	bool bHolding = false;
@@ -47,8 +51,17 @@ public:
 	// Check whether player is selecting something
 	bool IsSelecting();
 
+	// Check whether player is holding something
+	bool IsHolding();
+
 	// Clear selecting prop
 	void ClearProp();
+
+	// Hold prop
+	bool HoldProp(float DeltaTime);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_OnHoldBreak();
 
 public: // Input functions
 	void MoveForward(float AxisValue);

@@ -44,6 +44,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="Component")
 	UStaticMeshComponent* StaticMeshComponent;
 
+	// Transform where prop starts
 	FTransform Preset;
 
 	TArray<UMaterialInterface*> DefaultMaterials;
@@ -51,12 +52,26 @@ public:
 	UPROPERTY(EditAnywhere, Category="Material")
 	UMaterialInterface* GlowMaterial;
 
-	// Whether it's selected by player
+	// Whether it's held by player
 	bool bHeld = false;
+
+	/** Select timer */
+	FTimerHandle SelectTimer;
+	float time_selected = 0.0f;
+
+	// minimal time of glowing
+	float minimal_glowing_time = 0.5f;
+
+	// whether prop is overlapping with something
+	bool bOverlapping = false;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+	
+	virtual void NotifyActorEndOverlap(AActor* OtherActor) override;
 
 public:	
 	// Called every frame
@@ -81,4 +96,16 @@ public:
 	// Change glowing state
 	UFUNCTION(BlueprintCallable)
 	void ChangeGlow();
+
+	// Count selected time
+	void CountSelectedTime();
+
+	// Start counting selected time
+	void StartCountSelectedTime();
+
+	// Stop counting selected time and reset
+	void StopCountSelectedTime();
+
+	// Check whether prop is stucked
+	bool IsStucked();
 };

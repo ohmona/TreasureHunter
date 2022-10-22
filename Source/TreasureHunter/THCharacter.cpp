@@ -29,6 +29,9 @@ void ATHCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Initializing transform each tick
+	current_transform = GetTransform();
+
 	/** Check facing actor and if it's not selecting prop, reset */
 	if (IsSelecting()) {
 
@@ -43,6 +46,14 @@ void ATHCharacter::Tick(float DeltaTime)
 			// Clear selecting prop
 			ClearProp();
 			bSelecting = false;
+		}
+	}
+
+	/** Make holding prop to follow the player's view */
+	if (IsHolding()) {
+		if (!HoldProp(DeltaTime)) {
+			// If something went wrong, break the hold
+			BP_OnHoldBreak();
 		}
 	}
 }
@@ -93,13 +104,53 @@ FHitResult ATHCharacter::DoLinetrace()
 // Check whether player is selecting something
 bool ATHCharacter::IsSelecting()
 {
-	return Prop != nullptr;
+	return Prop != nullptr && !bHolding;
+}
+
+// Check whether player is holding something
+bool ATHCharacter::IsHolding()
+{
+	return Prop != nullptr && bHolding;
 }
 
 // Clear selecting prop
 void ATHCharacter::ClearProp()
 {
 	Prop = nullptr;
+}
+
+// Hold prop
+bool ATHCharacter::HoldProp(float DeltaTime)
+{
+	const float move_time = 5.0f;
+
+	// Get prop's transform
+	FTransform prop_transform = Prop->GetTransform();
+
+	// Get player's front vector
+	FTransform player_transform;
+	player_transform.SetLocation(current_transform.GetLocation() + (GetController()->GetControlRotation().Vector() * 200));
+	player_transform.SetRotation(GetControlRotation().Quaternion());
+
+	// Do lerp
+	FVector dest_loc;
+	FQuat dest_rot;
+	dest_loc = FMath::Lerp(prop_transform.GetLocation(), player_transform.GetLocation(), DeltaTime * move_time);
+	dest_rot = FMath::Lerp(prop_transform.GetRotation(), player_transform.GetRotation(), DeltaTime * move_time);
+
+	// Apply transform
+	FTransform destination;
+	destination.SetLocation(dest_loc);
+	destination.SetRotation(dest_rot);
+
+	FHitResult Hit;
+	Prop->StaticMeshComponent->SetWorldTransform(destination);
+
+	if (FVector::Distance(GetActorLocation(), destination.GetLocation()) > 400) {
+		HoldRelease();
+		return false;
+	}
+	return true;
 }
 
 void ATHCharacter::MoveForward(float AxisValue){ AddMovementInput(GetActorForwardVector(), AxisValue); }
@@ -124,25 +175,24 @@ void ATHCharacter::SprintRelease() { Cast<UCharacterMovementComponent>(GetMoveme
 
 void ATHCharacter::SelectPress() 
 {
-	UE_LOG(LogTemp, Log, TEXT("Select press"))
-
 	// Initialy get the actor front of the player
 	FHitResult FrontActor = DoLinetrace();
 
 	// Cast front actor to prop object
 	ATHProp* prop_temp = Cast<ATHProp>(FrontActor.GetActor());
 	if (prop_temp != nullptr) {
-		// Run code only if the prop is selectable and isn't glowing
-		if (prop_temp->bSelectable && !prop_temp->bGlowing) {
+		// Run code only if the prop is selectable, isn't glowing and the player isn't holding
+		if (prop_temp->bSelectable && !prop_temp->bGlowing && !bHolding) {
 			Prop = prop_temp;
 			Prop->ChangeGlow();
+			Prop->StartCountSelectedTime();
 			bSelecting = true;
 		}
 	}
 }
 
-void ATHCharacter::SelectRelease() {
-
+void ATHCharacter::SelectRelease() 
+{
 	/** Finish Selecting */
 	if (IsSelecting()) {
 		// Disable glow of selecting prop
@@ -153,6 +203,29 @@ void ATHCharacter::SelectRelease() {
 	}
 }
 
-void ATHCharacter::HoldPress() {}
+void ATHCharacter::HoldPress() 
+{
+	// Initialy get the actor front of the player
+	FHitResult FrontActor = DoLinetrace();
 
-void ATHCharacter::HoldRelease() {}
+	// Cast front actor to prop object
+	ATHProp* prop_temp = Cast<ATHProp>(FrontActor.GetActor());
+	if (prop_temp != nullptr) {
+		// run code only prop is holdable
+		if (prop_temp->bHoldable) {
+			Prop = prop_temp;
+			Prop->StaticMeshComponent->SetEnableGravity(false);
+			bHolding = true;
+		}
+	}
+}
+
+void ATHCharacter::HoldRelease() 
+{
+	/** Finish Holding */
+	if (IsHolding()) {
+		Prop->StaticMeshComponent->SetEnableGravity(true);
+		ClearProp();
+		bHolding = false;
+	}
+}

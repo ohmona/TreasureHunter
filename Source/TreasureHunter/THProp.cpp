@@ -38,6 +38,19 @@ void ATHProp::Tick(float DeltaTime)
 
 }
 
+void ATHProp::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorBeginOverlap(OtherActor);
+
+	bOverlapping = true;
+}
+
+void ATHProp::NotifyActorEndOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorEndOverlap(OtherActor);
+	bOverlapping = true;
+}
+
 // Reset transform of prop (Reset completely)
 void ATHProp::ResetTransform()
 {
@@ -78,9 +91,17 @@ void ATHProp::ChangeGlow()
 		}
 	}
 	else if(bGlowing) { // disable glow
-		bGlowing = false;
-		for (int32 i = 0; i < DefaultMaterials.Num(); i++) {
-			StaticMeshComponent->SetMaterial(i, DefaultMaterials[i]);
+		// Remove glow only if selected time was long enough
+		if (time_selected >= minimal_glowing_time) {
+			for (int32 i = 0; i < DefaultMaterials.Num(); i++) {
+				StaticMeshComponent->SetMaterial(i, DefaultMaterials[i]);
+			}
+			bGlowing = false;
+			StopCountSelectedTime();
+		}
+		else {
+			FTimerHandle GlowRemoveTimer;
+			GetWorld()->GetTimerManager().SetTimer(GlowRemoveTimer, this, &ATHProp::ChangeGlow, 1.0f, false, minimal_glowing_time - time_selected);
 		}
 	}
 }
@@ -109,4 +130,28 @@ void ATHProp::AddCustomForce(FVector direction, int32 force)
 
 	// Apply force
 	StaticMeshComponent->AddForce(direction * force * amplitude_multiplier * MeshMass);
+}
+
+// Count selected time
+void ATHProp::CountSelectedTime()
+{
+	time_selected += 0.1f;
+}
+
+// Start counting selected time
+void ATHProp::StartCountSelectedTime()
+{
+	GetWorld()->GetTimerManager().SetTimer(SelectTimer, this, &ATHProp::CountSelectedTime, 0.1f, true);
+}
+
+// Stop counting selected time and reset
+void ATHProp::StopCountSelectedTime()
+{
+	GetWorld()->GetTimerManager().ClearTimer(SelectTimer);
+	time_selected = 0.0f;
+}
+
+bool ATHProp::IsStucked()
+{
+	return bOverlapping;
 }

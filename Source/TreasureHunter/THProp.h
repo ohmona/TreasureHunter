@@ -10,8 +10,8 @@ UCLASS()
 class TREASUREHUNTER_API ATHProp : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	ATHProp();
 
@@ -19,38 +19,38 @@ public:
 
 	// Whether it's objective
 	UPROPERTY(EditAnywhere)
-	bool bSpecial = false;
+		bool bSpecial = false;
 
 	// Basically in kg
 	UPROPERTY(EditAnywhere)
-	float Mass = 1.0f;
+		float Mass = 1.0f;
 
 	// Whether physics is applied
 	UPROPERTY(EditAnywhere)
-	bool bMoveable = true;
+		bool bMoveable = true;
 
 	// Whether it can be selected by player
 	UPROPERTY(EditAnywhere)
-	bool bSelectable = true;
+		bool bSelectable = true;
 
 	// Whether it can be held by player
 	UPROPERTY(EditAnywhere)
-	bool bHoldable = true;
+		bool bHoldable = true;
 
 	/** unsorted Properties */
 
 	bool bGlowing = false;
 
-	UPROPERTY(EditAnywhere, Category="Component")
-	UStaticMeshComponent* StaticMeshComponent;
+	UPROPERTY(EditAnywhere, Category = "Component")
+		UStaticMeshComponent* StaticMeshComponent;
 
 	// Transform where prop starts
 	FTransform Preset;
 
 	TArray<UMaterialInterface*> DefaultMaterials;
 
-	UPROPERTY(EditAnywhere, Category="Material")
-	UMaterialInterface* GlowMaterial;
+	UPROPERTY(EditAnywhere, Category = "Material")
+		UMaterialInterface* GlowMaterial;
 
 	// Whether it's held by player
 	bool bHeld = false;
@@ -70,32 +70,32 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
-	
+
 	virtual void NotifyActorEndOverlap(AActor* OtherActor) override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Reset transform of prop (Reset completely)
 	UFUNCTION(BlueprintCallable)
-	void ResetTransform();
+		void ResetTransform();
 
 	// Reset rotation of prop
 	UFUNCTION(BlueprintCallable)
-	void ResetRotation(bool b_only_wake_up);
+		void ResetRotation(bool b_only_wake_up);
 
 	// Change Mass
 	UFUNCTION(BlueprintCallable)
-	void SetMassScale(float NewMass);
+		void SetMassScale(float NewMass);
 
 	// Add force to specific direction
 	UFUNCTION(BlueprintCallable)
-	void AddCustomForce(FVector direction, int32 force = 100);
+		void AddCustomForce(FVector direction, int32 force = 100);
 
 	// Change glowing state
 	UFUNCTION(BlueprintCallable)
-	void ChangeGlow();
+		void ChangeGlow();
 
 	// Count selected time
 	void CountSelectedTime();

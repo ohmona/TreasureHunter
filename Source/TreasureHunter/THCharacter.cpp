@@ -7,7 +7,7 @@
 // Sets default values
 ATHCharacter::ATHCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	Cast<UCharacterMovementComponent>(GetMovementComponent())->AirControl = 1;
@@ -36,7 +36,7 @@ void ATHCharacter::Tick(float DeltaTime)
 	if (IsSelecting()) {
 
 		// Get facing actor
-		AActor* facing = DoLinetrace().GetActor();
+		AActor* facing = DoLinetrace(max_range).GetActor();
 
 		// Check facing actor isn't selecting actor
 		if (facing != Cast<AActor>(Prop)) {
@@ -80,7 +80,7 @@ void ATHCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 }
 
 // Get the actor front of the player
-FHitResult ATHCharacter::DoLinetrace()
+FHitResult ATHCharacter::DoLinetrace(float range, AActor* ignoring)
 {
 	FVector rayLocation;
 	FRotator rayRotation;
@@ -91,14 +91,24 @@ FHitResult ATHCharacter::DoLinetrace()
 	if (playerController)
 	{
 		playerController->GetPlayerViewPoint(rayLocation, rayRotation);
-		endTrace = rayLocation + (rayRotation.Vector() * select_range);
+		endTrace = rayLocation + (rayRotation.Vector() * range);
 	}
 
 	FCollisionQueryParams traceParams(SCENE_QUERY_STAT(GetActorInAim), true, GetInstigator());
 	FHitResult hit(ForceInit);
-	GetWorld()->LineTraceSingleByChannel(hit, rayLocation, endTrace, ECC_Visibility, traceParams);
+
+	if (ignoring != nullptr) {
+		traceParams.AddIgnoredActor(ignoring);
+	}
+
+	GetWorld()->LineTraceSingleByChannel(hit, rayLocation, endTrace, ECC_WorldDynamic, traceParams);
 
 	return hit;
+}
+
+FHitResult ATHCharacter::DoLinetrace(float range)
+{
+	return DoLinetrace(range, nullptr);
 }
 
 // Check whether player is selecting something
@@ -122,14 +132,47 @@ void ATHCharacter::ClearProp()
 // Hold prop
 bool ATHCharacter::HoldProp(float DeltaTime)
 {
-	const float move_time = 5.0f;
+	// prevent from bug abuse
+	if (GetControlRotation().Pitch < 310 && GetControlRotation().Pitch > 270) {
+		HoldRelease();
+		return false;
+	}
 
 	// Get prop's transform
 	FTransform prop_transform = Prop->GetTransform();
 
+	const float error_range = 80;
+
+	// Get actor at the behind of holding prop
+	FHitResult hit = DoLinetrace(select_range + error_range, Prop);
+	FHitResult hit_behind = DoLinetrace(select_range + error_range + 150, Prop);
+
+	FVector Destination;
+	float distance = hit.Distance;
+	float correction = 0;
+
+	// Check if there's blocking
+	if (hit.IsValidBlockingHit()) {
+		// Destinate to facing location with distance to blocking object
+		Destination = current_transform.GetLocation()
+			+ (GetController()->GetControlRotation().Vector() * (distance - 50)); // 나는 빡대가리
+		Destination.Z += (error_range + 10);
+	}
+	else { 
+		// Set correction if prop is too close to other object
+		if (hit_behind.IsValidBlockingHit()) {
+			correction = 30;
+		}
+
+		// Default location where prop should be normally
+		Destination = current_transform.GetLocation()
+			+ (GetController()->GetControlRotation().Vector() * default_distance);
+		Destination.Z += correction;
+	}
+
 	// Get player's front vector
 	FTransform player_transform;
-	player_transform.SetLocation(current_transform.GetLocation() + (GetController()->GetControlRotation().Vector() * 200));
+	player_transform.SetLocation(Destination);
 	player_transform.SetRotation(GetControlRotation().Quaternion());
 
 	// Do lerp
@@ -144,20 +187,19 @@ bool ATHCharacter::HoldProp(float DeltaTime)
 	destination.SetRotation(dest_rot);
 
 	FHitResult Hit;
-	Prop->StaticMeshComponent->SetWorldTransform(destination);
+	Prop->StaticMeshComponent->SetWorldTransform(destination, true, &Hit);
+	Prop->StaticMeshComponent->SetAllPhysicsPosition(dest_loc);
+	Prop->StaticMeshComponent->SetAllPhysicsLinearVelocity(dest_loc);
+	Prop->StaticMeshComponent->SetAllPhysicsAngularVelocityInRadians(dest_rot.Vector());
 
-	if (FVector::Distance(GetActorLocation(), destination.GetLocation()) > 400) {
-		HoldRelease();
-		return false;
-	}
 	return true;
 }
 
-void ATHCharacter::MoveForward(float AxisValue){ AddMovementInput(GetActorForwardVector(), AxisValue); }
+void ATHCharacter::MoveForward(float AxisValue) { AddMovementInput(GetActorForwardVector(), AxisValue); }
 
 void ATHCharacter::MoveRight(float AxisValue) { AddMovementInput(GetActorRightVector(), AxisValue); }
 
-void ATHCharacter::Turn(float AxisValue){ AddControllerYawInput(AxisValue); }
+void ATHCharacter::Turn(float AxisValue) { AddControllerYawInput(AxisValue); }
 
 void ATHCharacter::Lookup(float AxisValue) { AddControllerPitchInput(AxisValue); }
 
@@ -173,10 +215,10 @@ void ATHCharacter::SprintPress() { Cast<UCharacterMovementComponent>(GetMovement
 
 void ATHCharacter::SprintRelease() { Cast<UCharacterMovementComponent>(GetMovementComponent())->MaxWalkSpeed = walk_speed; }
 
-void ATHCharacter::SelectPress() 
+void ATHCharacter::SelectPress()
 {
 	// Initialy get the actor front of the player
-	FHitResult FrontActor = DoLinetrace();
+	FHitResult FrontActor = DoLinetrace(select_range);
 
 	// Cast front actor to prop object
 	ATHProp* prop_temp = Cast<ATHProp>(FrontActor.GetActor());
@@ -191,7 +233,7 @@ void ATHCharacter::SelectPress()
 	}
 }
 
-void ATHCharacter::SelectRelease() 
+void ATHCharacter::SelectRelease()
 {
 	/** Finish Selecting */
 	if (IsSelecting()) {
@@ -203,10 +245,10 @@ void ATHCharacter::SelectRelease()
 	}
 }
 
-void ATHCharacter::HoldPress() 
+void ATHCharacter::HoldPress()
 {
 	// Initialy get the actor front of the player
-	FHitResult FrontActor = DoLinetrace();
+	FHitResult FrontActor = DoLinetrace(select_range);
 
 	// Cast front actor to prop object
 	ATHProp* prop_temp = Cast<ATHProp>(FrontActor.GetActor());
@@ -220,11 +262,17 @@ void ATHCharacter::HoldPress()
 	}
 }
 
-void ATHCharacter::HoldRelease() 
+void ATHCharacter::HoldRelease()
 {
 	/** Finish Holding */
 	if (IsHolding()) {
 		Prop->StaticMeshComponent->SetEnableGravity(true);
+
+		Prop->StaticMeshComponent->SetSimulatePhysics(false);
+		Prop->StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Prop->StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Prop->StaticMeshComponent->SetSimulatePhysics(true);
+
 		ClearProp();
 		bHolding = false;
 	}

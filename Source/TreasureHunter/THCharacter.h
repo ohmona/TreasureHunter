@@ -21,9 +21,14 @@ public:
 	int aa = 1;
 
 	// Values for control
-	float walk_speed = 450;
-	float sprint_factor = 1.3;
-	float select_range = 350;
+	const float walk_speed = 450;
+	const float sprint_factor = 1.3;
+	const float select_range = 350;
+	const float max_range = 500;
+	
+	// Values for holding mechanism
+	const float move_time = 20.0f;
+	const float default_distance = 300.0f;
 
 	// Whether player is holding a prop
 	bool bHolding = false;
@@ -38,7 +43,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -46,7 +51,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// Get the actor front of the player
-	FHitResult DoLinetrace();
+	FHitResult DoLinetrace(float range, AActor* ignoring);
+	FHitResult DoLinetrace(float range);
 
 	// Check whether player is selecting something
 	bool IsSelecting();

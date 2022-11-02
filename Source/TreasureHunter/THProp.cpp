@@ -6,10 +6,8 @@
 // Sets default values
 ATHProp::ATHProp()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	Preset = GetTransform();
 
 	// Create and initialize Components
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Static Mesh Component"));
@@ -29,6 +27,8 @@ void ATHProp::BeginPlay()
 		DefaultMaterials.SetNum(StaticMeshComponent->GetMaterials().Num());
 		DefaultMaterials = StaticMeshComponent->GetMaterials();
 	}
+
+	Preset = GetTransform();
 }
 
 // Called every frame
@@ -36,6 +36,10 @@ void ATHProp::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	/** Check whether prop flew to somewhere wrong */
+	if (GetActorLocation().Z < -3000) {
+		SetActorTransform(Preset);
+	}
 }
 
 void ATHProp::NotifyActorBeginOverlap(AActor* OtherActor)
@@ -62,7 +66,7 @@ void ATHProp::ResetRotation(bool b_only_wake_up)
 {
 	FQuat ResetRotation;
 	FQuat PresetVal = Preset.GetRotation();
-	
+
 	// Initalize return rotation as preset rotation
 	ResetRotation = PresetVal;
 
@@ -76,7 +80,7 @@ void ATHProp::ResetRotation(bool b_only_wake_up)
 	}
 
 	// unless destinating rotation is equal to current, apply the rotation
-	if(!ResetRotation.Equals(GetTransform().GetRotation())) SetActorRotation(ResetRotation);
+	if (!ResetRotation.Equals(GetTransform().GetRotation())) SetActorRotation(ResetRotation);
 }
 
 // Change glowing states
@@ -90,7 +94,7 @@ void ATHProp::ChangeGlow()
 			StaticMeshComponent->SetMaterial(i, GlowMaterial);
 		}
 	}
-	else if(bGlowing) { // disable glow
+	else if (bGlowing) { // disable glow
 		// Remove glow only if selected time was long enough
 		if (time_selected >= minimal_glowing_time) {
 			for (int32 i = 0; i < DefaultMaterials.Num(); i++) {
